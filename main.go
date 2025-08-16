@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"hotbrandon/go-cron-be/internal/scheduler"
 	"log"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
@@ -13,7 +17,11 @@ import (
 
 func main() {
 	// load environment variables
-	godotenv.Load(".env")
+	if err := godotenv.Load(".env"); err != nil {
+		// it's OK to continue if .env is absent in some deployments, but log it explicitly
+		log.Println("Warning: .env not loaded:", err)
+	}
+
 	SQLITE_PATH := os.Getenv("SQLITE_PATH")
 	if SQLITE_PATH == "" {
 		log.Fatal("SQLITE_PATH environment variable is not set")
@@ -25,14 +33,38 @@ func main() {
 
 	db, err := sql.Open("sqlite3", SQLITE_PATH)
 	if err != nil {
-		slog.Error("Error opening database:", "error", err)
+		slog.Error("Error opening database", "error", err)
+		log.Fatal(err)
 	}
-	// Defer the closing of the connection until the surrounding function returns.
-	defer db.Close()
 
-	scheduler := scheduler.NewScheduler(db, logger)
-	scheduler.Start()
-	defer scheduler.Stop()
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(time.Minute * 60)
 
-	select {}
+	// verify DB is reachable
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		logger.Error("Error pinging DB", "error", err)
+		db.Close()
+		log.Fatal(err)
+	}
+
+	// Ensure DB closed on exit
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("Error closing DB", "error", err)
+		}
+	}()
+
+	sched := scheduler.NewScheduler(db, logger)
+	sched.Start()
+	defer sched.Stop()
+
+	// graceful shutdown on signals
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+
+	logger.Info("Shutdown signal received, exiting")
 }
