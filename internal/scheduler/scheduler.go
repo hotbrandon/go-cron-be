@@ -28,12 +28,13 @@ func (s *Scheduler) Stop() {
 }
 
 func (s *Scheduler) Start() {
-	s.logger.Info("Scheduler started")
-	s.c.Start()
+	// Add jobs before starting
 	s.c.AddFunc("@every 1m", func() {
 		s.logger.Info("Running scheduled job every minute")
-		s.ShowEntries()
 	})
+
+	s.logger.Info("Scheduler started")
+	s.c.Start()
 }
 
 func (s *Scheduler) AddJob(spec string, job cron.Job) (cron.EntryID, error) {
