@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"hotbrandon/go-cron-be/internal/scheduler"
 	"log"
 	"log/slog"
 	"os"
@@ -29,4 +30,9 @@ func main() {
 	// Defer the closing of the connection until the surrounding function returns.
 	defer db.Close()
 
+	scheduler := scheduler.NewScheduler(db, logger)
+	scheduler.Start()
+	defer scheduler.Stop()
+
+	select {}
 }
