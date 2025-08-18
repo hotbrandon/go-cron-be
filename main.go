@@ -27,6 +27,11 @@ func main() {
 		log.Fatal("SQLITE_PATH environment variable is not set")
 	}
 
+	erpDsn := os.Getenv("ERP_DSN")
+	if erpDsn == "" {
+		log.Fatal("ERP_DSN environment variable not set")
+	}
+
 	// Initialize the logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
@@ -37,8 +42,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
+	db.SetMaxOpenConns(2)
+	db.SetMaxIdleConns(2)
 	db.SetConnMaxLifetime(time.Minute * 60)
 
 	// verify DB is reachable
@@ -53,7 +58,7 @@ func main() {
 	// Ensure DB closed on exit
 	defer func() {
 		if err := db.Close(); err != nil {
-			logger.Error("Error closing DB", "error", err)
+			logger.Warn("Failed to close DB on shutdown", "error", err, "sqlite_path", SQLITE_PATH)
 		}
 	}()
 

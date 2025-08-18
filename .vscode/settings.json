@@ -1,0 +1,72 @@
+{
+    "workbench.colorCustomizations": {
+        "activityBar.activeBackground": "#bf9bf0",
+        "activityBar.background": "#bf9bf0",
+        "activityBar.foreground": "#15202b",
+        "activityBar.inactiveForeground": "#15202b99",
+        "activityBarBadge.background": "#fbede3",
+        "activityBarBadge.foreground": "#15202b",
+        "commandCenter.border": "#15202b99",
+        "sash.hoverBorder": "#bf9bf0",
+        "statusBar.background": "#a26eea",
+        "statusBar.foreground": "#15202b",
+        "statusBarItem.hoverBackground": "#8541e4",
+        "statusBarItem.remoteBackground": "#a26eea",
+        "statusBarItem.remoteForeground": "#15202b",
+        "titleBar.activeBackground": "#a26eea",
+        "titleBar.activeForeground": "#15202b",
+        "titleBar.inactiveBackground": "#a26eea99",
+        "titleBar.inactiveForeground": "#15202b99"
+    },
+    "peacock.color": "#a26eea",
+    "peacock.favoriteColors": [
+        {
+            "name": "Tiffany Blue",
+            "value": "#0abab5"
+        },
+        {
+            "name": "Angular Red",
+            "value": "#dd0531"
+        },
+        {
+            "name": "Azure Blue",
+            "value": "#007fff"
+        },
+        {
+            "name": "HighFive Purple",
+            "value": "#a26eea"
+        },
+        {
+            "name": "JavaScript Yellow",
+            "value": "#f9e64f"
+        },
+        {
+            "name": "Google Yellow",
+            "value": "#fbbc05"
+        },
+        {
+            "name": "Mandalorian Blue",
+            "value": "#1857a4"
+        },
+        {
+            "name": "Node Green",
+            "value": "#215732"
+        },
+        {
+            "name": "React Blue",
+            "value": "#61dafb"
+        },
+        {
+            "name": "Something Different",
+            "value": "#832561"
+        },
+        {
+            "name": "Svelte Orange",
+            "value": "#ff3d00"
+        },
+        {
+            "name": "Vue Green",
+            "value": "#42b883"
+        }
+    ]
+}
