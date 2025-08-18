@@ -63,8 +63,16 @@ func main() {
 	}()
 
 	sched := scheduler.NewScheduler(db, logger)
-	sched.Start()
+
+	// Start the scheduler (this will register jobs and start the cron)
+	if err := sched.Start(); err != nil {
+		logger.Error("Failed to start scheduler", "error", err)
+		log.Fatal(err)
+	}
 	defer sched.Stop()
+
+	// Optional: Show scheduled entries for debugging
+	sched.ShowEntries()
 
 	// graceful shutdown on signals
 	sigCh := make(chan os.Signal, 1)
