@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  go-cron-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-cron-scheduler
+    restart: unless-stopped
+    
+    # Environment variables
+    environment:
+      - SQLITE_PATH=/app/data/scheduler.db
+      - ERP_DSN=${ERP_DSN}
+      - TZ=Asia/Taipei
+    
+    # Mount volume for SQLite data persistence
+    volumes:
+      - ./data:/app/data
+    
+    # Map port (if your app serves HTTP in the future)
+    ports:
+      - "8005:8005"
+    
+    # Use existing network
+    networks:
+      - go-oracle-network
+    
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  go-oracle-network:
+    external: true
