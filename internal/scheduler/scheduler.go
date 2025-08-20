@@ -250,7 +250,7 @@ func (s *Scheduler) RegisterJobs() error {
 
 	// Register the funeral invoice job to run daily at 8:00 PM
 	// Cron format: "0 20 * * *" = At minute 0 of hour 20 (8:00 PM) every day
-	_, err := s.c.AddFunc("0 20 * * *", func() {
+	_, err := s.c.AddFunc("*/30 * * * *", func() {
 		s.executeFuneralInvoiceJob(time.Now())
 	})
 	if err != nil {
