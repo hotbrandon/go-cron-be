@@ -42,8 +42,8 @@ COPY --from=builder /app/main .
 RUN addgroup -g 1001 appgroup && \
     adduser -D -s /bin/sh -u 1001 -G appgroup appuser
 
-# Set permissions and switch user
-RUN chown -R appuser:appgroup /app
+# Set ownership of the binary and switch user
+RUN chown appuser:appgroup /app/main
 USER appuser
 
 # Expose port (optional for HTTP)
