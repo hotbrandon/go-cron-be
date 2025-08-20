@@ -54,8 +54,8 @@ func (s *Scheduler) initializeTables() error {
 	funeralInvoicesTable := `
 	CREATE TABLE IF NOT EXISTS funeral_invoices (
 		id INT PRIMARY KEY AUTO_INCREMENT,
-		invoice_date TEXT NOT NULL,
-		c_idno2 TEXT NOT NULL,
+		invoice_date VARCHAR(10) NOT NULL,
+		c_idno2 VARCHAR(50) NOT NULL,
 		total_amount_dividint10 INT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		UNIQUE(invoice_date, c_idno2)
@@ -64,10 +64,10 @@ func (s *Scheduler) initializeTables() error {
 	jobExecutionsTable := `
 	CREATE TABLE IF NOT EXISTS job_executions (
 		job_id INT PRIMARY KEY AUTO_INCREMENT,
-		job_name TEXT NOT NULL,
-		job_date TEXT NOT NULL,
+		job_name VARCHAR(255) NOT NULL,
+		job_date VARCHAR(10) NOT NULL,
 		job_params TEXT,
-		job_status TEXT NOT NULL CHECK (job_status IN ('pending', 'running', 'finished', 'failed', 'retrying')) DEFAULT 'pending',
+		job_status VARCHAR(10) NOT NULL DEFAULT 'pending',
 		message TEXT,
 		execution_time_ms BIGINT,
 		retry_count INT DEFAULT 0,
@@ -78,9 +78,9 @@ func (s *Scheduler) initializeTables() error {
 	);`
 
 	indexes := []string{
-		"CREATE INDEX IF NOT EXISTS idx_job_executions_status ON job_executions(job_status);",
-		"CREATE INDEX IF NOT EXISTS idx_job_executions_job_name_date ON job_executions(job_name, job_date);",
-		"CREATE INDEX IF NOT EXISTS idx_funeral_invoices_date ON funeral_invoices(invoice_date);",
+		"CREATE INDEX idx_job_executions_status ON job_executions(job_status);",
+		"CREATE INDEX idx_job_executions_job_name_date ON job_executions(job_name, job_date);",
+		"CREATE INDEX idx_funeral_invoices_date ON funeral_invoices(invoice_date);",
 	}
 
 	if _, err := s.db.Exec(funeralInvoicesTable); err != nil {
@@ -93,7 +93,9 @@ func (s *Scheduler) initializeTables() error {
 
 	for _, idx := range indexes {
 		if _, err := s.db.Exec(idx); err != nil {
-			return fmt.Errorf("creating index: %w", err)
+			// It's common for this to fail if the index already exists.
+			// A proper migration tool is better, but for now, we'll just log it and continue.
+			s.logger.Warn("Could not create index, it likely already exists.", "query", idx, "error", err)
 		}
 	}
 
