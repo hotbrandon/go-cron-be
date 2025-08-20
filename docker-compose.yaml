@@ -9,10 +9,8 @@ services:
     restart: unless-stopped
     
     # Environment variables
-    environment:
-      - SQLITE_PATH=/app/data/scheduler.db
-      - ERP_DSN=${ERP_DSN}
-      - TZ=Asia/Taipei
+    env_file:
+      - .env
     
     # Mount volume for SQLite data persistence
     volumes:
