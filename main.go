@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func showEnvironments(logger *slog.Logger) {
@@ -20,7 +20,7 @@ func showEnvironments(logger *slog.Logger) {
 
 	logger.Info("TZ", "value", os.Getenv("TZ"))
 	logger.Info("ERP_DSN", "value", os.Getenv("ERP_DSN"))
-	logger.Info("SQLITE_PATH", "value", os.Getenv("SQLITE_PATH"))
+	logger.Info("MYSQL_DSN", "value", "---REDACTED---") // Redacted for security
 }
 
 func main() {
@@ -30,9 +30,9 @@ func main() {
 		log.Println("Warning: .env not loaded:", err)
 	}
 
-	SQLITE_PATH := os.Getenv("SQLITE_PATH")
-	if SQLITE_PATH == "" {
-		log.Fatal("SQLITE_PATH environment variable is not set")
+	mysqlDsn := os.Getenv("MYSQL_DSN")
+	if mysqlDsn == "" {
+		log.Fatal("MYSQL_DSN environment variable is not set")
 	}
 
 	erpDsn := os.Getenv("ERP_DSN")
@@ -46,8 +46,8 @@ func main() {
 
 	showEnvironments(logger)
 
-	// Connect to the SQLite database
-	db, err := sql.Open("sqlite3", SQLITE_PATH)
+	// Connect to the MySQL database
+	db, err := sql.Open("mysql", mysqlDsn)
 	if err != nil {
 		slog.Error("Error opening database", "error", err)
 		log.Fatal(err)
@@ -69,7 +69,7 @@ func main() {
 	// Ensure DB closed on exit
 	defer func() {
 		if err := db.Close(); err != nil {
-			logger.Warn("Failed to close DB on shutdown", "error", err, "sqlite_path", SQLITE_PATH)
+			logger.Warn("Failed to close DB on shutdown", "error", err)
 		}
 	}()
 

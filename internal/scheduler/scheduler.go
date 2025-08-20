@@ -53,27 +53,27 @@ func (s *Scheduler) Stop() {
 func (s *Scheduler) initializeTables() error {
 	funeralInvoicesTable := `
 	CREATE TABLE IF NOT EXISTS funeral_invoices (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id INT PRIMARY KEY AUTO_INCREMENT,
 		invoice_date TEXT NOT NULL,
 		c_idno2 TEXT NOT NULL,
-		total_amount_dividint10 INTEGER NOT NULL,
+		total_amount_dividint10 INT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		UNIQUE(invoice_date, c_idno2)
 	);`
 
 	jobExecutionsTable := `
 	CREATE TABLE IF NOT EXISTS job_executions (
-		job_id INTEGER PRIMARY KEY AUTOINCREMENT,
+		job_id INT PRIMARY KEY AUTO_INCREMENT,
 		job_name TEXT NOT NULL,
 		job_date TEXT NOT NULL,
 		job_params TEXT,
 		job_status TEXT NOT NULL CHECK (job_status IN ('pending', 'running', 'finished', 'failed', 'retrying')) DEFAULT 'pending',
 		message TEXT,
-		execution_time_ms INTEGER,
-		retry_count INTEGER DEFAULT 0,
-		max_retries INTEGER DEFAULT 3,
+		execution_time_ms BIGINT,
+		retry_count INT DEFAULT 0,
+		max_retries INT DEFAULT 3,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 		finished_at DATETIME
 	);`
 
@@ -119,8 +119,8 @@ func (s *Scheduler) createJobExecution(jobName, jobDate string, params interface
 // updateJobExecution updates job execution status and details
 func (s *Scheduler) updateJobExecution(jobID int64, status, message string, executionTimeMs int64, retryCount int) error {
 	query := `
-		UPDATE job_executions 
-		SET job_status = ?, message = ?, execution_time_ms = ?, retry_count = ?, updated_at = CURRENT_TIMESTAMP,
+		UPDATE job_executions
+		SET job_status = ?, message = ?, execution_time_ms = ?, retry_count = ?,
 		    finished_at = CASE WHEN ? IN ('finished', 'failed') THEN CURRENT_TIMESTAMP ELSE finished_at END
 		WHERE job_id = ?
 	`
@@ -141,7 +141,7 @@ func (s *Scheduler) storeFuneralInvoices(invoices []FuneralInvoiceRow) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(`
-		INSERT OR IGNORE INTO funeral_invoices (invoice_date, c_idno2, total_amount_dividint10) 
+		INSERT IGNORE INTO funeral_invoices (invoice_date, c_idno2, total_amount_dividint10)
 		VALUES (?, ?, ?)
 	`)
 	if err != nil {
