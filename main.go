@@ -20,7 +20,7 @@ func showEnvironments(logger *slog.Logger) {
 
 	logger.Info("TZ", "value", os.Getenv("TZ"))
 	logger.Info("ERP_DSN", "value", os.Getenv("ERP_DSN"))
-	logger.Info("MYSQL_DSN", "value", "---REDACTED---") // Redacted for security
+	logger.Info("MYSQL_DSN", "value", os.Getenv("MYSQL_DSN"))
 }
 
 func main() {
