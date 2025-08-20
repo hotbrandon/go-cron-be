@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Explicitly name the image to avoid the default "project-service" naming
+    image: go-cron-be:latest  
     container_name: go-cron-be
     restart: unless-stopped
     

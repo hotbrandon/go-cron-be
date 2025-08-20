@@ -186,9 +186,9 @@ func (s *Scheduler) executeFuneralInvoiceJob(targetDate time.Time) {
 
 // executeJobWithRetry handles the actual job execution with retry logic
 func (s *Scheduler) executeJobWithRetry(jobID int64, jobName string, targetDate time.Time) {
-	start := time.Now()
 	retryCount := 0
 	maxRetries := 3
+	var totalExecutionTime int64
 
 	for retryCount <= maxRetries {
 		// Update status to running/retrying
@@ -200,43 +200,47 @@ func (s *Scheduler) executeJobWithRetry(jobID int64, jobName string, targetDate 
 
 		s.logger.Info("Executing job", "job_id", jobID, "job", jobName, "retry_count", retryCount)
 
-		// Execute the actual job
+		// Measure just the actual job execution
+		attemptStart := time.Now()
 		invoices, err := GetFuneralInvoiceByDate(targetDate)
-		executionTime := time.Since(start).Milliseconds()
+		attemptDuration := time.Since(attemptStart).Milliseconds()
+		totalExecutionTime += attemptDuration
 
 		if err != nil {
 			retryCount++
-			message := fmt.Sprintf("Job failed (attempt %d/%d): %v", retryCount, maxRetries+1, err)
-			s.logger.Error("Job execution failed", "job_id", jobID, "job", jobName, "error", err, "retry_count", retryCount)
+			message := fmt.Sprintf("Job failed (attempt %d/%d, took %dms): %v", retryCount, maxRetries+1, attemptDuration, err)
+			s.logger.Error("Job execution failed", "job_id", jobID, "job", jobName, "error", err, "retry_count", retryCount, "attempt_duration_ms", attemptDuration)
 
 			if retryCount > maxRetries {
-				// Max retries exceeded, mark as failed
-				s.updateJobExecution(jobID, "failed", message, executionTime, retryCount-1)
+				s.updateJobExecution(jobID, "failed", message, totalExecutionTime, retryCount-1)
 				return
 			}
 
-			// Update with retry status and wait before retrying
-			s.updateJobExecution(jobID, "retrying", message, executionTime, retryCount-1)
+			s.updateJobExecution(jobID, "retrying", message, totalExecutionTime, retryCount-1)
 
-			// Exponential backoff: 1min, 2min, 4min
 			backoffDuration := time.Duration(1<<uint(retryCount-1)) * time.Minute
 			s.logger.Info("Retrying job after backoff", "job_id", jobID, "backoff_duration", backoffDuration)
 			time.Sleep(backoffDuration)
 			continue
 		}
 
-		// Job succeeded, store the data
+		// Job succeeded, measure storage time too
+		storeStart := time.Now()
 		if err := s.storeFuneralInvoices(invoices); err != nil {
-			message := fmt.Sprintf("Job completed but failed to store data: %v", err)
-			s.updateJobExecution(jobID, "failed", message, executionTime, retryCount)
+			storeDuration := time.Since(storeStart).Milliseconds()
+			totalExecutionTime += storeDuration
+			message := fmt.Sprintf("Job completed but failed to store data (exec: %dms, store: %dms): %v", attemptDuration, storeDuration, err)
+			s.updateJobExecution(jobID, "failed", message, totalExecutionTime, retryCount)
 			s.logger.Error("Failed to store job results", "job_id", jobID, "error", err)
 			return
 		}
+		storeDuration := time.Since(storeStart).Milliseconds()
+		totalExecutionTime += storeDuration
 
 		// Success
-		message := fmt.Sprintf("Successfully fetched and stored %d invoices", len(invoices))
-		s.updateJobExecution(jobID, "finished", message, executionTime, retryCount)
-		s.logger.Info("Job completed successfully", "job_id", jobID, "job", jobName, "invoices_count", len(invoices), "execution_time_ms", executionTime)
+		message := fmt.Sprintf("Successfully fetched and stored %d invoices (exec: %dms, store: %dms)", len(invoices), attemptDuration, storeDuration)
+		s.updateJobExecution(jobID, "finished", message, totalExecutionTime, retryCount)
+		s.logger.Info("Job completed successfully", "job_id", jobID, "job", jobName, "invoices_count", len(invoices), "execution_time_ms", totalExecutionTime, "fetch_time_ms", attemptDuration, "store_time_ms", storeDuration)
 		return
 	}
 }
