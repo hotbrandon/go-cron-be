@@ -47,8 +47,9 @@ USER appuser
 # Expose port (though this cron app might not need HTTP)
 EXPOSE 8005
 
-# Set timezone to Asia/Taipei
-ENV TZ=Asia/Taipei
+#
+# Environment variables are best set in docker-compose.yaml to avoid image rebuilds — unless they affect the image build process.
+#
 
 # Health check (optional)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

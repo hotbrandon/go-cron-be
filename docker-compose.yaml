@@ -1,11 +1,11 @@
-version: '3.8'
+version: '3.9'
 
 services:
   go-cron-app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: go-cron-scheduler
+    container_name: go-cron-be
     restart: unless-stopped
     
     # Environment variables

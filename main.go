@@ -15,6 +15,14 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+func showEnvironments(logger *slog.Logger) {
+	logger.Info("Environment variables:")
+
+	logger.Info("TZ", "value", os.Getenv("TZ"))
+	logger.Info("ERP_DSN", "value", os.Getenv("ERP_DSN"))
+	logger.Info("SQLITE_PATH", "value", os.Getenv("SQLITE_PATH"))
+}
+
 func main() {
 	// load environment variables
 	if err := godotenv.Load(".env"); err != nil {
@@ -36,6 +44,9 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
+	showEnvironments(logger)
+
+	// Connect to the SQLite database
 	db, err := sql.Open("sqlite3", SQLITE_PATH)
 	if err != nil {
 		slog.Error("Error opening database", "error", err)
