@@ -12,10 +12,7 @@ services:
     env_file:
       - .env
     
-    # Mount volume for SQLite data persistence
-    volumes:
-      - ./data:/app/data
-    
+      
     # Map port (if your app serves HTTP in the future)
     ports:
       - "8005:8005"
