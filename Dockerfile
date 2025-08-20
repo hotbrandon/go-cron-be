@@ -1,59 +1,59 @@
-# Build stage
+# ----------- Build stage -----------
 FROM golang:1.25-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+# Install build dependencies for CGO + SQLite
+RUN apk add --no-cache \
+    git \
+    ca-certificates \
+    tzdata \
+    gcc \
+    musl-dev \
+    sqlite-dev
 
 # Set working directory
 WORKDIR /app
 
-# Copy go mod files
+# Copy go mod files and download dependencies
 COPY go.mod go.sum ./
-
-# Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy the entire source code
 COPY . .
 
-# Build the application
+# Build the Go application with CGO enabled
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
 
-# Runtime stage
+
+
+# ----------- Runtime stage -----------
 FROM alpine:latest
 
-# Install runtime dependencies
-RUN apk --no-cache add ca-certificates tzdata sqlite
+# Install runtime dependencies (if needed)
+RUN apk --no-cache add \
+    ca-certificates \
+    tzdata
 
-# Create app directory and data directory
+# Set working directory and create data dir
 WORKDIR /app
-
-# Create data directory for SQLite
 RUN mkdir -p /app/data
 
-# Copy the binary from builder stage
+# Copy the built binary from the builder
 COPY --from=builder /app/main .
 
-# Create non-root user
+# Create non-root user for security
 RUN addgroup -g 1001 appgroup && \
     adduser -D -s /bin/sh -u 1001 -G appgroup appuser
 
-# Change ownership of app directory
+# Set permissions and switch user
 RUN chown -R appuser:appgroup /app
-
-# Switch to non-root user
 USER appuser
 
-# Expose port (though this cron app might not need HTTP)
+# Expose port (optional for HTTP)
 EXPOSE 8005
 
-#
-# Environment variables are best set in docker-compose.yaml to avoid image rebuilds — unless they affect the image build process.
-#
-
 # Health check (optional)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=60s --timeout=10s --start-period=10s --retries=3 \
     CMD pgrep -f main || exit 1
 
-# Run the application
+# Run the app
 CMD ["./main"]
