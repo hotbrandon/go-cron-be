@@ -1,14 +1,11 @@
 # ----------- Build stage -----------
-FROM golang:1.25-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
-# Install build dependencies for CGO + SQLite
+# Install build dependencies
 RUN apk add --no-cache \
     git \
     ca-certificates \
-    tzdata \
-    gcc \
-    musl-dev \
-    sqlite-dev
+    tzdata
 
 # Set working directory
 WORKDIR /app
@@ -20,22 +17,23 @@ RUN go mod download
 # Copy the entire source code
 COPY . .
 
-# Build the Go application with CGO enabled
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main .
+# Build the Go application.
+# CGO is disabled as the MySQL driver is pure Go.
+# ldflags are used to create a smaller binary.
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o main .
 
 
 
 # ----------- Runtime stage -----------
 FROM alpine:latest
 
-# Install runtime dependencies (if needed)
+# Install runtime dependencies
 RUN apk --no-cache add \
     ca-certificates \
     tzdata
 
-# Set working directory and create data dir
+# Set working directory
 WORKDIR /app
-RUN mkdir -p /app/data
 
 # Copy the built binary from the builder
 COPY --from=builder /app/main .
