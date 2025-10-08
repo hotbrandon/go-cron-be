@@ -102,7 +102,7 @@ func main() {
 	defer sched.Stop()
 
 	// Optional: Show scheduled entries for debugging
-	sched.ShowEntries()
+	// sched.ShowEntries()
 
 	// graceful shutdown on signals
 	sigCh := make(chan os.Signal, 1)
