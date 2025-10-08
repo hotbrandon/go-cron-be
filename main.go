@@ -16,11 +16,13 @@ import (
 )
 
 func showEnvironments(logger *slog.Logger) {
-	logger.Info("Environment variables:")
+	logger = logger.WithGroup("ENV")
 
-	logger.Info("TZ", "value", os.Getenv("TZ"))
-	logger.Info("ERP_DSN", "value", os.Getenv("ERP_DSN"))
-	logger.Info("MYSQL_DSN", "value", os.Getenv("MYSQL_DSN"))
+	logger.Info("Environment variables",
+		"TZ", os.Getenv("TZ"),
+		"ERP_DSN", os.Getenv("ERP_DSN"),
+		"MYSQL_DSN", os.Getenv("MYSQL_DSN"),
+	)
 }
 
 func main() {
@@ -30,19 +32,36 @@ func main() {
 		log.Println("Warning: .env not loaded:", err)
 	}
 
+	var logLevel slog.Level
+	switch os.Getenv("LOG_LEVEL") {
+	case "DEBUG":
+		logLevel = slog.LevelDebug
+	case "WARN":
+		logLevel = slog.LevelWarn
+	case "ERROR":
+		logLevel = slog.LevelError
+	default:
+		logLevel = slog.LevelInfo // Default to INFO
+	}
+	// Initialize the logger
+	handlerOpts := &slog.HandlerOptions{
+		// Set the minimum log level. Anything below this level will be discarded.
+		Level: logLevel,
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, handlerOpts))
+	slog.SetDefault(logger)
+
 	mysqlDsn := os.Getenv("MYSQL_DSN")
 	if mysqlDsn == "" {
-		log.Fatal("MYSQL_DSN environment variable is not set")
+		slog.Error("MYSQL_DSN environment variable is not set")
+		os.Exit(1)
 	}
 
 	erpDsn := os.Getenv("ERP_DSN")
 	if erpDsn == "" {
-		log.Fatal("ERP_DSN environment variable not set")
+		slog.Error("ERP_DSN environment variable is not set")
+		os.Exit(1)
 	}
-
-	// Initialize the logger
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
 
 	showEnvironments(logger)
 
@@ -50,7 +69,7 @@ func main() {
 	db, err := sql.Open("mysql", mysqlDsn)
 	if err != nil {
 		slog.Error("Error opening database", "error", err)
-		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	db.SetMaxOpenConns(2)
@@ -62,8 +81,8 @@ func main() {
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
 		logger.Error("Error pinging DB", "error", err)
-		db.Close()
-		log.Fatal(err)
+		_ = db.Close()
+		os.Exit(1)
 	}
 
 	// Ensure DB closed on exit
@@ -77,8 +96,8 @@ func main() {
 
 	// Start the scheduler (this will register jobs and start the cron)
 	if err := sched.Start(); err != nil {
-		logger.Error("Failed to start scheduler", "error", err)
-		log.Fatal(err)
+		slog.Error("Failed to start scheduler", "error", err)
+		os.Exit(1)
 	}
 	defer sched.Stop()
 

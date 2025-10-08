@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/robfig/cron/v3"
 )
 
@@ -93,9 +94,14 @@ func (s *Scheduler) initializeTables() error {
 
 	for _, idx := range indexes {
 		if _, err := s.db.Exec(idx); err != nil {
-			// It's common for this to fail if the index already exists.
-			// A proper migration tool is better, but for now, we'll just log it and continue.
-			s.logger.Warn("Could not create index, it likely already exists.", "query", idx, "error", err)
+			// Check if the error is a MySQL-specific "duplicate key name" error (code 1061)
+			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1061 {
+				s.logger.Debug("Index already exists, skipping creation.", "query", idx)
+			} else {
+				// For any other error, log it as a warning.
+				// A proper migration tool is better, but this is a good compromise.
+				s.logger.Warn("Could not create index.", "query", idx, "error", err)
+			}
 		}
 	}
 
